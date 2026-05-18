@@ -1,17 +1,6 @@
 import cv2
 import numpy as np
 
-board = [[1,3,5,5,1,5,2,5,5,4],
-         [5,1,4,4,5,4,3,5,4,1],
-         [1,4,3,4,2,3,1,3,2,2],
-         [2,5,4,4,1,3,4,5,1,1],
-         [2,3,2,2,3,3,2,2,3,3],
-         [3,1,3,1,4,4,2,1,4,1],
-         [1,2,5,5,4,3,5,4,2,3],
-         [3,2,1,3,1,3,1,4,5,5],
-         [3,1,3,5,3,1,4,1,4,3],
-         [5,1,2,5,5,2,1,4,5,1]]
-
 visited = [[True, False, False, False, False, False, False, False, False, False],
            [False, False, False, False, False, False, False, False, False, False],
            [False, False, False, False, False, False, False, False, False, False],
@@ -25,7 +14,7 @@ visited = [[True, False, False, False, False, False, False, False, False, False]
 
 minSolvedDepth = 20
 
-def analyze_color_flood(image_path):
+def img_to_number_grid(image_path):
     img = cv2.imread(image_path)
     if img is None:
         raise FileNotFoundError(f"Could not load image from {image_path}")
@@ -51,7 +40,7 @@ def analyze_color_flood(image_path):
             for p in pixels:
                 b, g, r_val = p
                 if (b > 30 or g > 30 or r_val > 30) and (b < 240 or g < 240 or r_val < 240):
-                    valid_pixels.append([r_val, g_val, b])
+                    valid_pixels.append([r_val, g, b])
             
             if len(valid_pixels) == 0:
                 grid_array[r][c] = 0
@@ -146,5 +135,7 @@ def solve(board, visited, color, steps):
         next_visited = [row[:] for row in visited]
         solve(next_board, next_visited, c, steps + [c])
 
+img_path=input("Enter the path to the image: ")
+board = img_to_number_grid(img_path+".png")
 apply_color_and_expand(board, visited, board[0][0])
 solve(board, visited, board[0][0], [])
