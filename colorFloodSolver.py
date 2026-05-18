@@ -12,10 +12,6 @@ board = [[1,3,5,5,1,5,2,5,5,4],
          [3,1,3,5,3,1,4,1,4,3],
          [5,1,2,5,5,2,1,4,5,1]]
 
-board2 = [[1,2,3],
-          [3,1,2],
-          [2,3,1]]
-
 visited = [[True, False, False, False, False, False, False, False, False, False],
            [False, False, False, False, False, False, False, False, False, False],
            [False, False, False, False, False, False, False, False, False, False],
@@ -26,10 +22,6 @@ visited = [[True, False, False, False, False, False, False, False, False, False]
            [False, False, False, False, False, False, False, False, False, False],
            [False, False, False, False, False, False, False, False, False, False],
            [False, False, False, False, False, False, False, False, False, False]]
-
-visited2 = [[True, False, False],
-           [False, False, False],
-           [False, False, False]]
 
 minSolvedDepth = 20
 
@@ -85,53 +77,46 @@ def analyze_color_flood(image_path):
             
     return grid_array
 
+def get_remaining_colors(board, visited):
+    colors = set()
+    for i in range(len(board)):
+        for j in range(len(board[0])):
+            if not visited[i][j]:
+                colors.add(board[i][j])
+    return len(colors)
+
 def checkAvailableColors(board, visited):
     availableColors = set()
     for i in range(len(board)):
         for j in range(len(board[0])):
             if visited[i][j]:
-                if i > 0 and not visited[i-1][j]:
-                    availableColors.add(board[i-1][j])
-                if i < len(board) - 1 and not visited[i+1][j]:
-                    availableColors.add(board[i+1][j])
-                if j > 0 and not visited[i][j-1]:
-                    availableColors.add(board[i][j-1])
-                if j < len(board[0]) - 1 and not visited[i][j+1]:
-                    availableColors.add(board[i][j+1])
+                for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nr, nc = i + dr, j + dc
+                    if 0 <= nr < len(board) and 0 <= nc < len(board[0]) and not visited[nr][nc]:
+                        availableColors.add(board[nr][nc])
     return availableColors
 
 def checkifSolved(visited):
-    for i in range(len(visited)):
-        for j in range(len(visited[0])):
-            if not visited[i][j]:
-                return False
-    return True
+    return all(all(val for val in row) for row in visited)
 
 def apply_color_and_expand(board, visited, color):
+    stack = []
     for i in range(len(board)):
         for j in range(len(board[0])):
             if visited[i][j]:
                 board[i][j] = color
+                stack.append((i, j))
 
-    changed = True
-    while changed:
-        changed = False
-        for i in range(len(board)):
-            for j in range(len(board[0])):
-                if not visited[i][j]:
-                    continue
-                if i > 0 and not visited[i - 1][j] and board[i - 1][j] == color:
-                    visited[i - 1][j] = True
-                    changed = True
-                if i < len(board) - 1 and not visited[i + 1][j] and board[i + 1][j] == color:
-                    visited[i + 1][j] = True
-                    changed = True
-                if j > 0 and not visited[i][j - 1] and board[i][j - 1] == color:
-                    visited[i][j - 1] = True
-                    changed = True
-                if j < len(board[0]) - 1 and not visited[i][j + 1] and board[i][j + 1] == color:
-                    visited[i][j + 1] = True
-                    changed = True
+    while stack:
+        r, c = stack.pop()
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < len(board) and 0 <= nc < len(board[0]):
+                if not visited[nr][nc] and board[nr][nc] == color:
+                    visited[nr][nc] = True
+                    stack.append((nr, nc))
+
+seen_states = {}
 
 def solve(board, visited, color, steps):
     global minSolvedDepth
@@ -140,15 +125,26 @@ def solve(board, visited, color, steps):
 
     apply_color_and_expand(board, visited, color)
 
-    if checkifSolved(visited) and len(steps) < minSolvedDepth:
-        minSolvedDepth = len(steps)
-        print(steps, f"({len(steps)})")
-        print()
+    state_tuple = tuple(tuple(row) for row in visited)
+    if state_tuple in seen_states and seen_states[state_tuple] <= len(steps):
         return
+    seen_states[state_tuple] = len(steps)
+
+    if checkifSolved(visited):
+        if len(steps) < minSolvedDepth:
+            minSolvedDepth = len(steps)
+            print(steps, f"({len(steps)})")
+            print()
+        return
+        
+    if len(steps) + get_remaining_colors(board, visited) >= minSolvedDepth:
+        return
+
     availableColors = checkAvailableColors(board, visited)
     for c in availableColors:
         next_board = [row[:] for row in board]
         next_visited = [row[:] for row in visited]
         solve(next_board, next_visited, c, steps + [c])
 
+apply_color_and_expand(board, visited, board[0][0])
 solve(board, visited, board[0][0], [])
